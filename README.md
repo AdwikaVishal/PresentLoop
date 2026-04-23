@@ -5,20 +5,43 @@
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-4299E1?style=for-the-badge&logo=google&logoColor=white)](https://mediapipe.dev/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
 
-**PresentLoop** is a privacy-preserving ambient presence system designed for elderly care and dementia support. It uses MediaPipe pose estimation and machine learning to detect real-time engagement levels from webcam feeds or uploaded videos, without capturing identifiable facial features.
+**PresentLoop** is an AI-based system designed to detect cognitive engagement in elderly individuals using pose-based behavioral signals. Unlike traditional systems that rely purely on physical activity or facial recognition, this project explores whether movement alone is a reliable proxy for engagement.
+The system processes video input (webcam or uploaded), extracts pose features using MediaPipe, and applies machine learning models to classify engagement in real time—while maintaining a privacy-preserving, non-invasive approach.
 
-## ✨ Features
+## 🎯 Problem Statement
+Existing engagement detection systems often assume:
+- Movement = Engagement
+- Stillness = Disengagement
 
-- **Live Webcam Detection**: Real-time pose tracking and engagement scoring
-- **Batch Video Analysis**: Process multiple MP4/AVI videos automatically
-- **Multiple ML Models**: Compare 4 trained RandomForest models (5-20 features)
-  - Model 1: Original 5-feature baseline
-  - Model 2: Enhanced 11-feature model  
-  - Model 3: Probability-averaging ensemble of all models
-  - RF Model: 20-feature expanded model
-- **Visual Analytics**: Smoothed engagement graphs + comparison plots (PNG exports)
-- **Evaluation Metrics**: Auto-saves results to `evaluation_results.csv`
-- **Threshold Controls**: Adjustable engagement confidence (0.0-1.0)
+However, in real-world scenarios:
+- Walking does not imply attention
+- Sitting still may indicate focus
+- Sleeping or confusion can be misclassified as engagement
+
+This project aims to address this gap by building a data-driven, context-aware engagement detection system.
+
+## ⚙️ System Architecture
+Video Input → Pose Extraction → Feature Engineering → Model Prediction → Temporal Smoothing → Output
+
+**Key Components**:
+- **Pose Estimation**: MediaPipe (33 body landmarks)
+- **Feature Engineering**:
+  - Head orientation (yaw, pitch)
+  - Posture stability
+  - Motion intensity & variance
+  - Pose confidence
+- **Models**:
+  - Random Forest (5, 11, 20 feature variants)
+  - Ensemble model (probability averaging)
+- **Interface**: Streamlit-based real-time dashboard
+
+## 🚀 Features
+- Real-time engagement detection from webcam
+- Batch video analysis with automated evaluation
+- Multiple ML models for comparative analysis
+- Smoothed engagement visualization over time
+- Exportable evaluation metrics (evaluation_results.csv)
+- Adjustable confidence threshold for classification
 
 ## 📱 Demo
 
@@ -40,25 +63,7 @@ streamlit run app.py
 ![Screenshot](engagement_Screen%20Recording%202026-04-14%20at%205.50.23%20PM.png)
 *Example: Model comparison graphs*
 
-## 🏗️ Architecture
 
-```
-app.py (Streamlit UI + Core Logic)
-├── MediaPipe Pose (33 landmarks → key points)
-├── extract_features() → Model-specific (5/11/20 feats)
-│   ├── Head orientation (sin yaw/pitch)
-│   ├── Body pose (shoulder/hip angles)
-│   ├── Movement variance
-│   └── Visibility confidence
-├── Models (*.pkl):
-│   ├── presentloop_model.pkl (5 feats)
-│   ├── presentloop_model2.pkl (11 feats)  
-│   ├── presentloop_model3.pkl (Ensemble)
-│   └── rf_model.pkl (20 feats)
-├── process_video_multi() → Frame-by-frame scoring
-├── generate_engagement_graph() → Smoothed plots
-└── evaluation_results.csv → Aggregated metrics
-```
 
 ## 🚀 Quick Start
 
@@ -92,50 +97,97 @@ From `evaluation_results.csv`:
 
 **Model 2 consistently outperforms Model 1** (higher engagement % across test videos).
 
-## 🛠️ Model Development
+## 🛠️ Methodology
 
-```bash
-# Inspect models
-python inspect_models.py
+1. **Baseline Model**
+   A rule-based system using posture and motion features:
+   - Performed well in static scenarios
+   - Failed in dynamic and low-motion cases
 
-# Recreate ensemble (Model 3)
-python create_model3.py
+2. **Machine Learning Approach**
+   Trained Random Forest models on engineered pose features
+   Applied:
+   - Cross-validation
+   - Class balancing
+   - Feature expansion (5 → 20 features)
+
+3. **Temporal Modeling**
+   Experimented with LSTM networks
+   Observed limited performance due to small sequential dataset
+
+**👉 Final insight**: Simpler models outperformed complex ones given the data constraints
+
+## 📱 Demo
+```
+streamlit run app.py
 ```
 
-**Feature Evolution**:
-- **Model 1** (5 feats): Head angles + basic movement
-- **Model 2** (11 feats): + Head-shoulder distance, motion variance, pose confidence  
-- **RF Model** (20 feats): + Limb positions/visibility
-- **Model 3**: Proba-average ensemble (robust to feature mismatches)
+**Live Mode**:
+- Real-time pose tracking
+- Engagement score visualization
+- Rolling graph of predictions
+
+**Batch Mode**:
+- Upload videos
+- Generate engagement graphs
+- Export performance metrics
+
+## 📊 Results
+Random Forest achieved ~95% accuracy
+Ensemble model improved stability and reduced noise
+Smoothed predictions enhanced interpretability
+
+However, evaluation revealed critical real-world limitations (see below).
+
+## 🧠 Key Insights
+- Movement ≠ Cognitive Engagement
+- Low motion ≠ Disengagement (or engagement)
+- Feature engineering had a greater impact than model complexity
+- Simpler models can outperform deep learning on limited data
+- Evaluation metrics alone can be misleading without contextual analysis
+
+## ⚠️ Limitations
+- Pose-based features lack contextual understanding (e.g., gaze, attention)
+- Misclassification in low-motion states (e.g., sleeping)
+- Sensitivity to camera distance and orientation
+- Limited dataset size affects temporal modeling
+
+## 🔮 Future Work
+- Integrate multimodal signals (gaze tracking, audio, facial cues)
+- Improve temporal modeling using larger sequential datasets
+- Introduce context-aware engagement classification
+- Expand dataset diversity for real-world robustness
 
 ## 📂 Project Structure
-
 ```
-├── app.py                 # Main Streamlit app
-├── create_model3.py       # Ensemble creation
-├── inspect_models.py      # Model diagnostics
-├── *.pkl                  # Trained models
-├── pose_landmarker_lite.task  # MediaPipe model
-├── evaluation_results.csv # Results log
-├── engagement_*.png       # Generated graphs
-├── comparison_*.png       # Model comparison plots
-└── TODO.md              # Development roadmap
+├── app.py
+├── create_model3.py
+├── inspect_models.py
+├── models/*.pkl
+├── pose_landmarker_lite.task
+├── evaluation_results.csv
+├── engagement_*.png
+├── comparison_*.png
+└── README.md
 ```
 
-## 🔬 Research Context
+## 📊 Sample Output
+| Video | Model | Avg Score | Engaged % |
+|-------|-------|-----------|-----------|
+| test1 | Model 2 | 0.62 | 68% |
+| test2 | Model 3 | 0.58 | 62% |
 
-Built for **elderly engagement monitoring**:
-- Detects attentive posture vs distraction/disengagement
-- No facial recognition → Privacy-first
-- Ambient operation (no user interaction needed)
-- Calibrated threshold (default 0.5)
+## 🔬 Research Contribution
+This project highlights a key challenge in human-centered AI:
+Physical signals alone are insufficient to infer cognitive states.
+
+By demonstrating the limitations of pose-based engagement detection, PresentLoop contributes toward building more context-aware and reliable assistive AI systems.
 
 ## 🤝 Contributing
-
-1. Add new pose features to `extract_features()`
-2. Train models on labeled engagement data
-3. Extend UI (e.g., export video overlays)
-4. See [TODO.md](TODO.md)
+- Extend feature extraction
+- Train models on larger datasets
+- Improve UI/UX
+- Add multimodal capabilities
 
 ## 📄 License
 
@@ -143,5 +195,9 @@ MIT License — Research prototype for non-commercial use.
 
 ---
 
-**Built with ❤️ for accessible AI monitoring** | [Streamlit App](https://streamlit.io) | [MediaPipe Pose](https://mediapipe.dev)
+**❤️ Acknowledgment**  
+Built with a focus on accessible, privacy-preserving AI for healthcare and assistive technology.
+
+## 📄 License
+MIT License — Research prototype for non-commercial use.
 
